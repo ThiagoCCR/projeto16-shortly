@@ -32,6 +32,7 @@ async function ShortenUrl(req, res) {
     console.error(error.message);
     res.sendStatus(500);
   }
+  
 }
 
 export { ShortenUrl };
