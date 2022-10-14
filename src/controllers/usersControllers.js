@@ -55,12 +55,12 @@ async function SignInUser(req, res) {
       "SELECT * FROM users WHERE users.email LIKE $1",
       [loginData.email]
     );
-    const validUser= user.rows[0];
-    console.log(user)
+    const validUser = user.rows[0];
+    console.log(user);
 
     if (user && bcrypt.compareSync(loginData.password, validUser.password)) {
       const token = uuid();
-      const userId = user.rows[0].id
+      const userId = user.rows[0].id;
 
       await connection.query(
         'INSERT INTO sessions ("userId",token) VALUES ($1,$2)',
@@ -77,4 +77,25 @@ async function SignInUser(req, res) {
   }
 }
 
-export { SignUpUser, SignInUser };
+async function GetUserInfo(req, res) {
+  const authorization = req.headers.authorization;
+  const token = authorization?.replace("Bearer ", "");
+  if (!token) return res.status(401).send("Autorização enviada incorretamente");
+  try {
+    const session = await connection.query(
+      "SELECT * FROM sessions WHERE token LIKE $1",
+      [token]
+    );
+    const validSession = session.rows[0];
+    if (validSession.token !== token) {
+      return res.sendStatus(409);
+    }
+    
+    res.sendStatus(200);
+  } catch (error) {
+    console.error(error.message);
+    res.sendStatus(500);
+  }
+}
+
+export { SignUpUser, SignInUser, GetUserInfo };

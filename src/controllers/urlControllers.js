@@ -19,7 +19,7 @@ async function ShortenUrl(req, res) {
       "SELECT * FROM sessions WHERE token LIKE $1",
       [token]
     );
-    if (session.rows[0] !== token) {
+    if (session.rows[0].length === 0) {
       return res.sendStatus(409);
     }
 
@@ -57,7 +57,6 @@ async function GetUrlById(req, res) {
 
 async function DeleteUrlById(req, res) {
   const id = req.params.id;
-  console.log(id);
   const authorization = req.headers.authorization;
   const token = authorization?.replace("Bearer ", "");
   if (!token) return res.status(401).send("Autorização enviada incorretamente");
@@ -82,7 +81,32 @@ async function DeleteUrlById(req, res) {
   }
 }
 
-export { ShortenUrl, GetUrlById, DeleteUrlById };
+async function AcessUrl(req, res) {
+  const shortURL = req.params.shortUrl;
+  if (!shortURL) return res.status(409).send("Informe uma shortUrl...");
+  try {
+    const url = await connection.query(
+      'SELECT * FROM urls WHERE urls."shortURL" LIKE $1',
+      [shortURL]
+    );
+    if (url.rows.length === 0) {
+      return res.status(404).send("URL não encontrada");
+    }
+    const validUrl = url.rows[0];
+    validUrl.visitCount += 1;
+    console.log(validUrl)
+    await connection.query(
+      `UPDATE urls SET "visitCount"=${validUrl.visitCount} WHERE "shortURL"=$1;`,
+      [shortURL]
+    );
+    res.redirect(validUrl.URL)
+  } catch (error) {
+    console.error(error.message);
+    res.sendStatus(500);
+  }
+}
+
+export { ShortenUrl, GetUrlById, DeleteUrlById, AcessUrl };
 
 function validateURL(textval) {
   let urlregex =
