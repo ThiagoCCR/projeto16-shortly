@@ -77,14 +77,4 @@ async function SignInUser(req, res) {
   }
 }
 
-async function teste(req, res) {
-  try {
-    const user = await connection.query("SELECT * FROM sessions");
-    res.send(user);
-  } catch (error) {
-    console.error(error);
-    res.sendStatus(500);
-  }
-}
-
-export { SignUpUser, SignInUser, teste };
+export { SignUpUser, SignInUser };

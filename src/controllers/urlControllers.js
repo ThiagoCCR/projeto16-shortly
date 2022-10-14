@@ -43,21 +43,46 @@ async function GetUrlById(req, res) {
       res.sendStatus(404);
     }
     const validUrl = url.rows[0];
-    console.log(validUrl)
-    res
-      .status(200)
-      .send({
-        id: validUrl.id,
-        shortUrl: validUrl.shortURL,
-        url: validUrl.URL,
-      });
+    console.log(validUrl);
+    res.status(200).send({
+      id: validUrl.id,
+      shortUrl: validUrl.shortURL,
+      url: validUrl.URL,
+    });
   } catch (error) {
     console.error(error.message);
     res.sendStatus(500);
   }
 }
 
-export { ShortenUrl, GetUrlById };
+async function DeleteUrlById(req, res) {
+  const id = req.params.id;
+  console.log(id);
+  const authorization = req.headers.authorization;
+  const token = authorization?.replace("Bearer ", "");
+  if (!token) return res.status(401).send("Autorização enviada incorretamente");
+  try {
+    const session = await connection.query(
+      "SELECT * FROM sessions WHERE token LIKE $1",
+      [token]
+    );
+    const validSession = session.rows[0];
+    if (validSession.token !== token) {
+      return res.sendStatus(409);
+    }
+    const url = await connection.query("SELECT * FROM urls WHERE id=$1", [id]);
+    const validUrl = url.rows[0];
+    if (!validUrl) return res.send(404);
+    if (validUrl.userId !== validSession.userId) return res.sendStatus(401);
+    await connection.query("DELETE FROM urls WHERE id=$1", [id]);
+    res.sendStatus(204);
+  } catch (error) {
+    console.error(error.message);
+    res.sendStatus(500);
+  }
+}
+
+export { ShortenUrl, GetUrlById, DeleteUrlById };
 
 function validateURL(textval) {
   let urlregex =
