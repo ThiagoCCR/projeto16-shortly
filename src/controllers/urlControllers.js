@@ -32,10 +32,32 @@ async function ShortenUrl(req, res) {
     console.error(error.message);
     res.sendStatus(500);
   }
-  
 }
 
-export { ShortenUrl };
+async function GetUrlById(req, res) {
+  const id = req.params.id;
+  if (!id) return res.sendStatus(409);
+  try {
+    const url = await connection.query("SELECT * FROM urls WHERE id=$1", [id]);
+    if (url.rows.length === 0) {
+      res.sendStatus(404);
+    }
+    const validUrl = url.rows[0];
+    console.log(validUrl)
+    res
+      .status(200)
+      .send({
+        id: validUrl.id,
+        shortUrl: validUrl.shortURL,
+        url: validUrl.URL,
+      });
+  } catch (error) {
+    console.error(error.message);
+    res.sendStatus(500);
+  }
+}
+
+export { ShortenUrl, GetUrlById };
 
 function validateURL(textval) {
   let urlregex =
