@@ -56,7 +56,6 @@ async function SignInUser(req, res) {
       [loginData.email]
     );
     const validUser = user.rows[0];
-    console.log(user);
 
     if (user && bcrypt.compareSync(loginData.password, validUser.password)) {
       const token = uuid();
@@ -90,7 +89,6 @@ async function GetUserInfo(req, res) {
       return res.sendStatus(409);
     }
     const validSession = session.rows[0];
-    console.log(validSession.userId);
     const user = await connection.query("SELECT * FROM users WHERE id=$1", [
       validSession.userId,
     ]);
@@ -112,4 +110,26 @@ async function GetUserInfo(req, res) {
   }
 }
 
-export { SignUpUser, SignInUser, GetUserInfo };
+async function GetUsersRanking(req, res) {
+  try {
+    const query = await connection.query(`
+        SELECT 
+            users."id", 
+            users.name, 
+            COUNT(urls."userId") as "linksCount", 
+            COALESCE(SUM(urls."visitCount"),0) as "visitCount"
+        FROM users
+        LEFT JOIN urls ON users."id" = urls."userId"
+        GROUP BY users."id"
+        ORDER BY "visitCount" DESC, "linksCount" DESC
+        LIMIT 10;
+    `);
+    const ranking = query.rows;
+    res.status(200).send(ranking);
+  } catch (error) {
+    res.send("Não foi possível conectar ao Banco");
+    console.log(error);
+  }
+}
+
+export { SignUpUser, SignInUser, GetUserInfo, GetUsersRanking };
