@@ -12,10 +12,6 @@ app.use(express.json());
 app.use(usersRouter);
 app.use(urlRouter);
 
-// app.listen(process.env.PORT, () => {
-//   console.log("Server running on port " + process.env.PORT);
-// });
-
-app.listen(4000, () => {
-  console.log("Server running on port 4000");
+app.listen(process.env.PORT, () => {
+  console.log("Server running on port " + process.env.PORT);
 });

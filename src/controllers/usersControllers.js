@@ -86,12 +86,26 @@ async function GetUserInfo(req, res) {
       "SELECT * FROM sessions WHERE token LIKE $1",
       [token]
     );
-    const validSession = session.rows[0];
-    if (validSession.token !== token) {
+    if (!session.rows[0]) {
       return res.sendStatus(409);
     }
-    
-    res.sendStatus(200);
+    const validSession = session.rows[0];
+    console.log(validSession.userId);
+    const user = await connection.query("SELECT * FROM users WHERE id=$1", [
+      validSession.userId,
+    ]);
+    if (!user.rows[0]) return res.sendStatus(404);
+    const userInfo = await connection.query(
+      'SELECT users.id, users.name, SUM(urls."visitCount") AS "visitCount" FROM users JOIN urls ON users.id=urls."userId" WHERE users.id=$1 GROUP BY users.id;',
+      [user.rows[0].id]
+    );
+    const query = await connection.query(
+      'SELECT urls.id, urls."shortURL", urls."URL", urls."visitCount" FROM urls WHERE urls."userId"=$1;',
+      [user.rows[0].id]
+    );
+    const { rows } = query;
+    const data = { ...userInfo.rows[0], shortenedUrls: rows };
+    res.status(200).send(data);
   } catch (error) {
     console.error(error.message);
     res.sendStatus(500);
