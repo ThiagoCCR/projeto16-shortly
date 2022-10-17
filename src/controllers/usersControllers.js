@@ -1,42 +1,11 @@
 import connection from "../db/db.js";
-import joi from "joi";
 import bcrypt from "bcrypt";
 import { v4 as uuid } from "uuid";
 
-const userSchema = joi.object({
-  name: joi.string().required(),
-  email: joi.string().email().required(),
-  password: joi.string().required(),
-  confirmPassword: joi.string().required(),
-});
-
-const loginSchema = joi.object({
-  name: joi.string().required(),
-  password: joi.string().required(),
-});
-
 async function SignUpUser(req, res) {
-  const userData = req.body;
+  const userData = res.locals.userData;
   const passwordHash = bcrypt.hashSync(userData.password, 10);
-  const validation = userSchema.validate(userData, { abortEarly: false });
-
-  if (validation.error) {
-    const error = validation.error.details.map((value) => value.message);
-    return res.status(422).send(error);
-  }
-
-  if (userData.password !== userData.confirmPassword) {
-    return res.status(422).send("As senhas são diferentes");
-  }
-
   try {
-    const isEmailUsed = await connection.query(
-      "SELECT * FROM users WHERE email=$1",
-      [userData.email]
-    ).rows;
-    if (isEmailUsed) {
-      return res.sendStatus(409);
-    }
     await connection.query(
       "INSERT INTO users (name, email, password) VALUES ($1, $2, $3);",
       [userData.name, userData.email, passwordHash]
@@ -49,7 +18,7 @@ async function SignUpUser(req, res) {
 }
 
 async function SignInUser(req, res) {
-  const loginData = req.body;
+  const loginData = res.locals.loginData;
   try {
     const user = await connection.query(
       "SELECT * FROM users WHERE users.email LIKE $1",
@@ -77,22 +46,8 @@ async function SignInUser(req, res) {
 }
 
 async function GetUserInfo(req, res) {
-  const authorization = req.headers.authorization;
-  const token = authorization?.replace("Bearer ", "");
-  if (!token) return res.status(401).send("Autorização enviada incorretamente");
+  const user = res.locals.user;
   try {
-    const session = await connection.query(
-      "SELECT * FROM sessions WHERE token LIKE $1",
-      [token]
-    );
-    if (!session.rows[0]) {
-      return res.sendStatus(409);
-    }
-    const validSession = session.rows[0];
-    const user = await connection.query("SELECT * FROM users WHERE id=$1", [
-      validSession.userId,
-    ]);
-    if (!user.rows[0]) return res.sendStatus(404);
     const userInfo = await connection.query(
       'SELECT users.id, users.name, SUM(urls."visitCount") AS "visitCount" FROM users JOIN urls ON users.id=urls."userId" WHERE users.id=$1 GROUP BY users.id;',
       [user.rows[0].id]

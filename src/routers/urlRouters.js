@@ -3,16 +3,19 @@ import {
   ShortenUrl,
   GetUrlById,
   DeleteUrlById,
-  AcessUrl
+  AcessUrl,
 } from "../controllers/urlControllers.js";
+import { isAuth } from "../middlewares/authMiddlewares.js";
+import {
+  validateShortenUrl,
+  validateUrlId,
+} from "../middlewares/urlsMiddlewares.js";
 
 const router = express.Router();
 
-router.post("/urls/shorten", ShortenUrl);
-router.get("/urls/:id", GetUrlById);
-router.delete("/urls/:id", DeleteUrlById);
+router.post("/urls/shorten", isAuth, validateShortenUrl, ShortenUrl);
+router.get("/urls/:id", validateUrlId, GetUrlById);
+router.delete("/urls/:id", isAuth, validateUrlId, DeleteUrlById);
 router.get("/urls/open/:shortUrl", AcessUrl);
-
-
 
 export default router;
